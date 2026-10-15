@@ -1,0 +1,973 @@
+modules
+├── alerts
+├── customer
+├── identity_access
+├── investigations
+├── kyc
+├── reporting
+├── risk_scoring
+├── screening
+└── transaction_monitoring
+
+For your AML/KYC MVP, I'd define the database around 5 logical schemas:
+
+Plain Text
+1
+public -> Core business data
+2
+network -> Device & relationship intelligence
+3
+risk -> Rule engine and risk engine
+4
+analytics -> Features and reporting
+5
+raw -> Landing/staging data
+Show more lines
+1. Public Schema (Core Operational Data)
+CUSTOMER
+
+Central customer entity.
+
+SQL
+1
+CUSTOMER
+2
+---------
+3
+customer_id UUID PK
+4
+first_name
+5
+last_name
+6
+date_of_birth
+7
+gender
+8
+identity_type
+9
+identity_number
+10
+email
+11
+cellphone
+12
+address
+13
+employment
+14
+income
+15
+country
+16
+country_of_origin
+17
+customer_status
+18
+customer_type
+19
+created_at
+Show more lines
+Relationships
+Plain Text
+1
+CUSTOMER
+2
+├─ ACCOUNT
+3
+├─ KYC_RECORD
+4
+├─ SCREENING_RESULT
+5
+├─ RISK_SCORE
+6
+├─ ALERT
+7
+├─ INVESTIGATION_CASE
+8
+├─ CUSTOMER_DEVICE
+9
+└─ IOVATION_EVENT
+Show more lines
+ACCOUNT
+SQL
+1
+ACCOUNT
+2
+---------
+3
+account_id UUID PK
+4
+customer_id UUID FK
+5
+account_type
+6
+status
+7
+balance
+8
+created_at
+9
+ 
+Show more lines
+FINANCIAL_TRANSACTION
+SQL
+1
+FINANCIAL_TRANSACTION
+2
+----------------------
+3
+financial_transaction_id UUID PK
+4
+customer_id UUID FK
+5
+account_id UUID FK
+6
+transaction_type
+7
+transaction_amount
+8
+token
+9
+reference_comment
+10
+branch_id
+11
+reason_id
+12
+related_transaction_id
+13
+is_cancelled
+14
+is_paid_out
+15
+transaction_timestamp
+16
+created_at
+Show more lines
+
+Examples:
+
+Plain Text
+1
+DEPOSIT
+2
+WITHDRAWAL
+3
+TRANSFER
+4
+PAYOUT
+Show more lines
+BET
+SQL
+1
+BET
+2
+----
+3
+bet_id UUID PK
+4
+customer_id UUID FK
+5
+game_type
+6
+provider
+7
+status
+8
+stake_amount
+9
+potential_payout
+10
+placed_at
+11
+settled_at
+Show more lines
+BET_TRANSACTION
+SQL
+1
+BET_TRANSACTION
+2
+----------------
+3
+bet_transaction_id UUID PK
+4
+bet_id UUID FK
+5
+customer_id UUID FK
+6
+account_id UUID FK
+7
+transaction_type
+8
+transaction_amount
+9
+tax_rate
+10
+balance
+11
+currency_rate
+12
+reference_comment
+13
+branch_id
+14
+user_id
+15
+reason_id
+16
+created_at
+Show more lines
+KYC_RECORD
+SQL
+1
+KYC_RECORD
+2
+----------
+3
+kyc_id UUID PK
+4
+customer_id UUID FK
+5
+identity_status
+6
+address_status
+7
+verification_result
+8
+verified_at
+9
+ 
+Show more lines
+
+Examples:
+
+Plain Text
+1
+VERIFIED
+2
+REJECTED
+3
+PENDING
+Show more lines
+SCREENING_RESULT
+SQL
+1
+SCREENING_RESULT
+2
+----------------
+3
+screening_id UUID PK
+4
+customer_id UUID FK
+5
+screening_type
+6
+result
+7
+match_found
+8
+matched_entity
+9
+screened_at
+Show more lines
+
+Types:
+
+Plain Text
+1
+PEP
+2
+SANCTIONS
+3
+WATCHLIST
+4
+ADVERSE_MEDIA
+Show more lines
+ALERT
+SQL
+1
+ALERT
+2
+------
+3
+alert_id UUID PK
+4
+customer_id UUID FK
+5
+risk_score_id UUID FK
+6
+alert_type
+7
+severity
+8
+status
+9
+created_at
+Show more lines
+INVESTIGATOR
+SQL
+1
+INVESTIGATOR
+2
+------------
+3
+investigator_id UUID PK
+4
+employee_number
+5
+first_name
+6
+last_name
+7
+email
+8
+role
+9
+department
+10
+status
+11
+created_at
+Show more lines
+INVESTIGATION_CASE
+SQL
+1
+INVESTIGATION_CASE
+2
+-------------------
+3
+case_id UUID PK
+4
+customer_id UUID FK
+5
+alert_id UUID FK
+6
+investigator_id UUID FK
+7
+status
+8
+priority
+9
+outcome
+10
+opened_at
+11
+closed_at
+Show more lines
+INVESTIGATION_ACTIVITY
+SQL
+1
+INVESTIGATION_ACTIVITY
+2
+-----------------------
+3
+activity_id UUID PK
+4
+case_id UUID FK
+5
+investigator_id UUID FK
+6
+activity_type
+7
+notes
+8
+created_at
+Show more lines
+2. Network Schema
+
+Used for network intelligence and relationship detection.
+
+DEVICE
+SQL
+1
+DEVICE
+2
+--------
+3
+device_id BIGINT PK
+4
+device_guid
+5
+operating_system
+6
+device_type
+7
+browser_type
+8
+browser_version
+9
+browser_language
+10
+screen_resolution
+11
+first_seen
+Show more lines
+CUSTOMER_DEVICE
+SQL
+1
+CUSTOMER_DEVICE
+2
+----------------
+3
+customer_device_id UUID PK
+4
+customer_id UUID FK
+5
+device_id BIGINT FK
+6
+first_seen
+7
+last_seen
+8
+is_new_device
+Show more lines
+
+Purpose:
+
+Plain Text
+1
+Customer A
+2
+↓
+3
+Device X
+4
+↑
+5
+Customer B
+Show more lines
+
+Shared device detection.
+
+IOVATION_EVENT
+SQL
+1
+IOVATION_EVENT
+2
+---------------
+3
+iovation_event_id UUID PK
+4
+customer_id UUID FK
+5
+device_id BIGINT FK
+6
+event_type
+7
+tracking_number
+8
+monetary_amount
+9
+result
+10
+score
+11
+rule_name
+12
+stated_ip
+13
+real_ip
+14
+stated_city
+15
+stated_country
+16
+real_city
+17
+real_country
+18
+observed_at
+Show more lines
+
+Used for:
+
+Plain Text
+1
+Device risk
+2
+IP intelligence
+3
+Geo anomalies
+4
+Proxy detection
+5
+Account linking
+Show more lines
+3. Risk Schema
+
+This is the heart of the AML platform.
+
+RULE
+
+Stores AML rules.
+
+SQL
+1
+RULE
+2
+-----
+3
+rule_id BIGINT PK
+4
+code
+5
+name
+6
+category
+7
+description
+8
+rule_type
+9
+severity
+10
+risk_weight
+11
+enabled
+12
+version
+13
+created_at
+14
+updated_at
+Show more lines
+
+Examples:
+
+Plain Text
+1
+AML001 Large Deposit
+2
+AML002 Rapid Withdrawal
+3
+AML003 Shared Device
+4
+AML004 PEP Match
+Show more lines
+RULE_PARAMETER
+
+Configurable thresholds.
+
+SQL
+1
+RULE_PARAMETER
+2
+---------------
+3
+rule_parameter_id BIGINT PK
+4
+rule_id BIGINT FK
+5
+parameter_name
+6
+parameter_value
+7
+data_type
+Show more lines
+
+Example:
+
+Plain Text
+1
+rule_id = AML001
+2
+ 
+3
+parameter_name = threshold
+4
+parameter_value = 10000
+Show more lines
+RULE_VERSION
+
+Rule history.
+
+SQL
+1
+RULE_VERSION
+2
+-------------
+3
+rule_version_id BIGINT PK
+4
+rule_id BIGINT FK
+5
+version
+6
+configuration_json
+7
+effective_from
+8
+effective_to
+9
+created_by
+Show more lines
+
+Allows:
+
+Plain Text
+1
+Show exactly which rule
+2
+version was used
+3
+during a historical assessment.
+Show more lines
+RULE_RESULT
+
+Stores every rule execution.
+
+SQL
+1
+RULE_RESULT
+2
+------------
+3
+rule_result_id BIGINT PK
+4
+customer_id UUID FK
+5
+rule_id BIGINT FK
+6
+triggered
+7
+confidence
+8
+risk_points
+9
+evaluated_at
+10
+rule_version
+11
+evidence_json
+12
+execution_time_ms
+Show more lines
+
+Example evidence:
+
+JSON
+1
+{
+2
+"deposit_amount": 25000,
+3
+"threshold": 10000
+4
+}
+Show more lines
+RISK_EVENT
+
+Explainability layer.
+
+SQL
+1
+RISK_EVENT
+2
+-----------
+3
+risk_event_id UUID PK
+4
+customer_id UUID FK
+5
+rule_result_id BIGINT FK
+6
+risk_category
+7
+risk_type
+8
+contribution
+9
+description
+10
+detected_at
+Show more lines
+
+Examples:
+
+Plain Text
+1
+LARGE_DEPOSIT
+2
+PEP_MATCH
+3
+HIGH_VELOCITY
+4
+SHARED_DEVICE
+Show more lines
+RISK_SCORE
+
+Final customer risk assessment.
+
+SQL
+1
+RISK_SCORE
+2
+------------
+3
+risk_score_id UUID PK
+4
+customer_id UUID FK
+5
+score
+6
+risk_level
+7
+scoring_method
+8
+model_version
+9
+calculated_at
+Show more lines
+
+Example:
+
+Plain Text
+1
+Customer: John Doe
+2
+Score: 82
+3
+Level: HIGH
+Show more lines
+4. Analytics Schema
+
+Feature engineering and reporting.
+
+CUSTOMER_FEATURE
+SQL
+1
+CUSTOMER_FEATURE
+2
+-----------------
+3
+customer_id UUID PK
+4
+risk_score
+5
+deposit_count_30_days
+6
+withdrawal_count_30_days
+7
+total_deposits_30_days
+8
+total_withdrawals_30_days
+9
+shared_device_count
+10
+pep_match
+11
+sanctions_match
+12
+feature_created_at
+Show more lines
+TRANSACTION_FEATURE
+SQL
+1
+TRANSACTION_FEATURE
+2
+-------------------
+3
+feature_id UUID PK
+4
+customer_id UUID FK
+5
+feature_name
+6
+feature_value
+7
+calculated_at
+Show more lines
+
+Examples:
+
+Plain Text
+1
+DepositVelocity
+2
+WithdrawalRatio
+3
+FundingPatternScore
+Show more lines
+GRAPH_FEATURE
+SQL
+1
+GRAPH_FEATURE
+2
+--------------
+3
+feature_id UUID PK
+4
+customer_id UUID FK
+5
+shared_devices
+6
+connected_customers
+7
+network_risk_score
+8
+calculated_at
+Show more lines
+5. Raw Schema
+
+Landing zone before transformation.
+
+RAW_CLIENT
+SQL
+1
+RAW_CLIENT
+Show more lines
+RAW_IOVATION
+SQL
+1
+RAW_IOVATION
+Show more lines
+RAW_FINANCIAL_TRANSACTION
+SQL
+1
+RAW_FINANCIAL_TRANSACTION
+Show more lines
+RAW_BET_TRANSACTION
+SQL
+1
+RAW_BET_TRANSACTION
+Show more lines
+Core AML Flow
+Plain Text
+1
+CUSTOMER
+2
+↓
+3
+KYC_RECORD
+4
+↓
+5
+SCREENING_RESULT
+6
+↓
+7
+FINANCIAL_TRANSACTION
+8
+↓
+9
+DEVICE / IOVATION_EVENT
+10
+↓
+11
+RULE ENGINE
+12
+↓
+13
+RULE_RESULT
+14
+↓
+15
+RISK_EVENT
+16
+↓
+17
+RISK_SCORE
+18
+↓
+19
+ALERT
+20
+↓
+21
+INVESTIGATION_CASE
+22
+↓
+23
+INVESTIGATION_ACTIVITY
+Show more lines
+Key Domain Entities
+
+For your FastAPI modules, these are the primary entities:
+
+Plain Text
+1
+customer
+2
+├─ Customer
+3
+├─ Account
+4
+ 
+5
+kyc
+6
+├─ KycRecord
+7
+ 
+8
+screening
+9
+├─ ScreeningResult
+10
+ 
+11
+transaction_monitoring
+12
+├─ FinancialTransaction
+13
+├─ Bet
+14
+├─ BetTransaction
+15
+ 
+16
+network_intelligence
+17
+├─ Device
+18
+├─ CustomerDevice
+19
+├─ IovationEvent
+20
+ 
+21
+risk_scoring
+22
+├─ Rule
+23
+├─ RuleParameter
+24
+├─ RuleVersion
+25
+├─ RuleResult
+26
+├─ RiskEvent
+27
+├─ RiskScore
+28
+ 
+29
+alerts
+30
+├─ Alert
+31
+ 
+32
+investigations
+33
+├─ Investigator
+34
+├─ InvestigationCase
+35
+├─ InvestigationActivity
+36
+ 
+37
+reporting
+38
+├─ CustomerFeature
+39
+├─ TransactionFeature
+40
+├─ GraphFeature
+41
+ 
+Show more lines
+
+This structure supports your MVP and scales naturally into a full AML platform with configurable rules, explainable risk scoring, network intelligence, investigations, Power BI reporting, and future ML models.
